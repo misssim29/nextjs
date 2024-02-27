@@ -32,3 +32,53 @@ import Image from "next/image";
 ## 클라이언트 컴포넌트 선언
 
 "use client"
+
+## MongoDB
+
+npm install mongodb
+
+https://cloud.mongodb.com/v2/65dd73edb4e20234075e4d11#/clusters
+
+서버코드는 서버클라이언트 안에서만 사용한다.
+
+```
+//util/database.js
+import { MongoClient } from "mongodb";
+const url =
+  "mongodb+srv://admin:930209@next-test.9mvl1pm.mongodb.net/?retryWrites=true&w=majority&appName=next-test";
+const options = { useNewUrlParser: true };
+let connectDB;
+
+if (process.env.NODE_ENV === "development") {
+  if (!global._mongo) {
+    global._mongo = new MongoClient(url, options).connect();
+  }
+  connectDB = global._mongo;
+} else {
+  connectDB = new MongoClient(url, options).connect();
+}
+export { connectDB };
+
+//컴포넌트
+const client = await connectDB;
+const db = client.db("forum");
+
+let result = await db.collection("post").find().toArray();
+
+```
+
+## router
+
+- client component 안에서만 사용 가능
+
+import { useRouter } from "next/navigation";
+
+뒤로가기는 router.back()
+
+앞으로가기는 router.forward()
+
+바뀐내용만 새로고침은 router.refresh()
+
+페이지 미리로드는 router.prefetch()
+
+usePathName(), useSearchParams()
