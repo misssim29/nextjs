@@ -555,7 +555,24 @@ npm install -D typescript-plugin-css-modules
 
 ## redux toolkit과 react query 같이쓰기
 
-npm install react-redux @reduxjs/toolkit @tanstack/react-query next-redux-wrapper redux-logger
+npm install react-redux @reduxjs/toolkit @tanstack/react-query
+
+redux toolkit은 기존 방식 그대로 갖다 쓰되 Provider만 밖으로 뺴서 use client 설정해준다음에 layout에서 children 사용해서 넣어주기
+
+```
+//provider.tsx
+"use client";
+
+import { store } from "./index";
+import { Provider } from "react-redux";
+
+export function ReduxProvider({ children }: { children: React.ReactNode }) {
+  return <Provider store={store}>{children}</Provider>;
+}
+
+//layout.tsx
+<ReduxProvider>{children}</ReduxProvider>
+```
 
 ## use 어쩌고 ESLINT 오류날 경우
 
