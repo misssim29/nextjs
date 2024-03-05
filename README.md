@@ -133,6 +133,10 @@ export const revalidate = 60;
 
 ## Auth.js (session, token)
 
+src/auth.ts
+
+src/middleware.ts
+
 아이디/비번로그인시 JWT(token) 강제로 사용해야함
 
 먼저 github에 허락같은걸 받아야함
@@ -193,6 +197,10 @@ export const authOptions = {
 };
 export default NextAuth(authOptions);
 ```
+
+### 카카오로그인이나 네이버로그인 provider로 쉽게 추가할 수 있음
+
+[참조](https://mycodings.fly.dev/blog/2023-06-07-how-to-nextjs-nextauth-with-kakao-login)
 
 ## loading.js
 
@@ -409,3 +417,146 @@ export default function ViewPage(){
   )
 }
 ```
+
+## 더미데이터 넣어주는 라이브러리
+
+npm install --save-dev @faker-js/faker
+
+```
+import  {  fakerKO  as  faker  }  from  '@faker-js/faker' ;
+
+export function createRandomUser(): User {
+  return {
+    userId: fakerKO.string.uuid(),
+    username: fakerKO.internet.userName(),
+    email: fakerKO.internet.email(),
+    avatar: fakerKO.image.avatar(),
+    password: fakerKO.internet.password(),
+    birthdate: fakerKO.date.birthdate(),
+    registeredAt: fakerKO.date.past(),
+  };
+}
+export const USERS: User[] = fakerKO.helpers.multiple(createRandomUser, {
+  count: 5,
+});
+
+```
+
+## .env & .env.local
+
+.env.local 파일은 개발중에만 적용된다. 개발중일땐 .env파일과 .env.local 파일이 같이 적용된다.
+
+빌드할땐 .env파일만 실행
+
+process.env.API_URL
+
+## React-query
+
+npm i @tanstack/react-query@5
+
+npm i @tanstack/react-query-devtools@5 -D
+
+RQProvide를 만들어 준 후 layout에서 감싼다.
+
+client component에서 가져오는 방법
+
+```
+  const { data } = useQuery<User[]>({
+    queryKey: ['users', 'followRecommends'],
+    queryFn: getFollowRecommends,
+    staleTime: 60 * 1000, // fresh -> stale, 5분이라는 기준
+    gcTime: 300 * 1000,
+  })
+```
+
+staleTime 은 캐시 저장 시간으로 1분으로 저장시 1분동안 캐시가 저장되고 새로고침해도 데이터를 새로가져오지않는다 1분이 지나서 새로고침해야 새로가져온다
+
+staleTime은 항상 gcTime보다 짧아야한다. gcTime은 데이터를 보관하고있는 기간
+
+## 메타데이터 설정하기
+
+```
+import {Metadata} from 'next'
+export const metadata:Metadata = {
+  title : '타이틀',
+  description : '홈'
+}
+```
+
+메타데이터에 변수 넣어야할 경우
+
+```
+export async function generateMetadata({searchParams}: Props):Promise<Metadata>{
+  return{
+    title : `${searchParams.q}`,
+    description : `${searchParams.q}
+  }
+}
+```
+
+## 인피니트 스크롤링
+
+### intersection-observer
+
+npm i react-intersection-observer
+
+```
+import {useInView} from "react-intersection-observer";
+
+const { data, fetchNextPage, hasNextPage, isFetching } = prefetchInfiniteQuery({
+  queryKey : ['posts','recommends'],
+  queryFn : getPostRecommentds,
+  initialPageParam : 0,
+  getNextPageParam : (lastPage) => lastPage.at(-1)?.postId,
+  staleTime : 60 * 1000,
+  gcTime : 300 * 1000
+});
+
+const { ref , inView } = useInView({
+  threshold : 0,
+  delay : 0
+});
+
+useEffect(()=>{
+  if(inView){
+   !isFetching && hasNextPage && fetchNextPage();
+  }
+},[inView, iseFetching, hasNextPage, fetchNextPage]);
+
+return(
+  <>
+    {data?.pages.map((page,i)=>(
+      <Fragment key={i}>
+        {page.map((post)=><Post key={post.postId} post={post} />)}
+      </Fragment>
+      <div ref={ref} style={ {height : 50 } }></div>
+    ))}
+  </>
+)
+```
+
+## SCSS 설치
+
+npm install -D sass
+
+npm install -D typescript-plugin-css-modules
+
+```
+// tsconfig.json
+{
+  "compilerOptions": {
+    "plugins": [{ "name": "typescript-plugin-css-modules" }]
+  }
+}
+```
+
+- vscode에서 사용할 경우 추가설정
+  [참조](https://gildev.tistory.com/entry/Dev-Nextjs13-scss)
+
+## redux toolkit과 react query 같이쓰기
+
+npm install react-redux @reduxjs/toolkit @tanstack/react-query next-redux-wrapper redux-logger
+
+## use 어쩌고 ESLINT 오류날 경우
+
+page 함수명 첫글자 대문자로해야함..

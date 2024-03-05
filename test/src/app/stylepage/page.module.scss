@@ -1,0 +1,13 @@
+@use "../../scss/color.scss" as theme;
+
+.wrap {
+  background-color: theme.$backgroundColor;
+  width: 100dvw;
+  height: 100dvh;
+  .box {
+    background-color: theme.$mainColor;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+  }
+}
