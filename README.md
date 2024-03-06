@@ -442,13 +442,17 @@ export const USERS: User[] = fakerKO.helpers.multiple(createRandomUser, {
 
 ```
 
-## .env & .env.local
+## .env & .env.local & NEXT_PUBULIC
 
 .env.local 파일은 개발중에만 적용된다. 개발중일땐 .env파일과 .env.local 파일이 같이 적용된다.
 
 빌드할땐 .env파일만 실행
 
 process.env.API_URL
+
+일반 환경변수 API_URL의 경우 서버컴포넌트에서만 접근할 수 있고 클라이언트 컴포넌트에서는 접근할 수 없다.
+
+그래서 클라이언트 컴포넌트에서도 사용하고싶다면 앞에 `NEXT_PUBLIC_` 접두사를 붙여야한다.
 
 ## React-query
 
@@ -494,6 +498,140 @@ export async function generateMetadata({searchParams}: Props):Promise<Metadata>{
 }
 ```
 
+## SCSS 설치
+
+npm install -D sass
+
+npm install -D typescript-plugin-css-modules
+
+```
+// tsconfig.json
+{
+  "compilerOptions": {
+    "plugins": [{ "name": "typescript-plugin-css-modules" }]
+  }
+}
+```
+
+- vscode에서 사용할 경우 추가설정
+  [참조](https://gildev.tistory.com/entry/Dev-Nextjs13-scss)
+
+## redux toolkit과 react query 같이쓰기
+
+npm install react-redux @reduxjs/toolkit @tanstack/react-query @tanstack/react-query-devtools
+
+redux toolkit은 기존 방식 그대로 갖다 쓰되 Provider만 밖으로 뺴서 use client 설정해준다음에 layout에서 children 사용해서 넣어주기
+
+### 리액트쿼리 Provider 설정
+
+```
+//provider.tsx
+"use client";
+
+import React, { useState } from "react";
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+type Props = {
+  children: React.ReactNode;
+};
+
+function RQProvider({ children }: Props) {
+  const [client] = useState(
+    new QueryClient({
+      defaultOptions: {
+        // react-query 전역 설정
+        queries: {
+          refetchOnWindowFocus: false,
+          retryOnMount: true,
+          refetchOnReconnect: false,
+          retry: false,
+        },
+      },
+    })
+  );
+
+  return (
+    <QueryClientProvider client={client}>
+      {children}
+      <ReactQueryDevtools
+        initialIsOpen={process.env.NEXT_PUBLIC_MODE === "local"}
+      />
+    </QueryClientProvider>
+  );
+}
+
+export default RQProvider;
+
+
+//layout.tsx
+<ReduxProvider>{children}</ReduxProvider>
+```
+
+### 클라이언트 컴포넌트
+
+```
+import { useQuery } from "@tanstack/react-query";
+import { listApi } from "@/lib/api/listApi";
+const { isLoading, data } = useQuery({
+  queryKey: ["listApi"],
+  queryFn: () => listApi(),
+});
+console.log(data, isLoading);
+```
+
+### 서버 컴포넌트
+
+```
+import {
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from "@tanstack/react-query";
+import { revalidatePath, revalidateTag } from "next/cache";
+
+async function getList() {
+  const res = await fetch(
+    "https://jsonplaceholder.typicode.com/todos/1/posts",
+    {
+      next: {
+        tags: ["lists", "item"],
+      },
+      cache: "no-store", //캐시 저장 안하고 계속 새로운 데이터 가져옴
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch data");
+  }
+
+  revalidateTag("item"); // 서버에 저장된 item 쿠키를 삭제
+  revalidatePath("/serverquery"); // serverquery 페이지의 모든 정보를 새로고침함
+
+  return res.json();
+}
+
+export default async function ServerQueryPage() {
+  const queryClient = new QueryClient();
+  await queryClient.prefetchQuery({
+    queryKey: ["lists", "item"],
+    queryFn: getList,
+  });
+  const dehydratedState = dehydrate(queryClient);
+
+  return (
+    <>
+      <HydrationBoundary state={dehydratedState}>
+        <div></div>
+      </HydrationBoundary>
+    </>
+  );
+}
+
+```
+
+seo 적용할 부분만 서버컴포넌트에서도 데이터 호출을 시켜줘야함
+
 ## 인피니트 스크롤링
 
 ### intersection-observer
@@ -533,45 +671,6 @@ return(
     ))}
   </>
 )
-```
-
-## SCSS 설치
-
-npm install -D sass
-
-npm install -D typescript-plugin-css-modules
-
-```
-// tsconfig.json
-{
-  "compilerOptions": {
-    "plugins": [{ "name": "typescript-plugin-css-modules" }]
-  }
-}
-```
-
-- vscode에서 사용할 경우 추가설정
-  [참조](https://gildev.tistory.com/entry/Dev-Nextjs13-scss)
-
-## redux toolkit과 react query 같이쓰기
-
-npm install react-redux @reduxjs/toolkit @tanstack/react-query
-
-redux toolkit은 기존 방식 그대로 갖다 쓰되 Provider만 밖으로 뺴서 use client 설정해준다음에 layout에서 children 사용해서 넣어주기
-
-```
-//provider.tsx
-"use client";
-
-import { store } from "./index";
-import { Provider } from "react-redux";
-
-export function ReduxProvider({ children }: { children: React.ReactNode }) {
-  return <Provider store={store}>{children}</Provider>;
-}
-
-//layout.tsx
-<ReduxProvider>{children}</ReduxProvider>
 ```
 
 ## use 어쩌고 ESLINT 오류날 경우

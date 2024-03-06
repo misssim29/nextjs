@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/store";
 import { useEffect, useState } from "react";
 import { RootState } from "@/store/reducer";
+import ListPage from "./_component/page";
 
 export default function ReactQueryPage() {
   const dispatch = useDispatch();
@@ -20,6 +21,7 @@ export default function ReactQueryPage() {
       <span>{count}</span>
       <span>{name}</span>
       <button onClick={fncPlus}>+</button>
+      <ListPage />
     </div>
   );
 }
